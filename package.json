@@ -1,6 +1,6 @@
 {
   "author": "Mikael Bourges-Sevenier <mikeseven@gmail.com>",
-  "name": "node-webgl",
+  "name": "@lfdoherty/node-webgl",
   "description": "WebGL bindings for node",
   "version": "0.5.5",
   "main": "index.js",
@@ -28,6 +28,7 @@
   "license": "BSD-3-Clause",
   "dependencies": {
     "bindings": "^1.2.1",
-    "nan": "^2.11.1"
+    "nan": "^2.11.1",
+    "@lfdoherty/node-glfw": "^0.4.6"
   }
 }
