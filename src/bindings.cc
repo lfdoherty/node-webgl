@@ -13,7 +13,7 @@
 v8::PropertyAttribute constant_attributes = 
         static_cast<v8::PropertyAttribute>(v8::ReadOnly | v8::DontDelete);    
 // Used to be a macro, hence the uppercase name.
-#define JS_GL_SET_CONSTANT(name, constant) Nan::ForceSet(target, JS_STR( name ), \
+#define JS_GL_SET_CONSTANT(name, constant) Nan::DefineOwnProperty(target, JS_STR( name ), \
     JS_INT(constant), constant_attributes)
 
 //#define JS_GL_SET_CONSTANT(name, value) NODE_DEFINE_CONSTANTNODE_DEFINE_CONSTANT
@@ -170,6 +170,31 @@ void init(Handle<Object> target)
   Nan::SetMethod(target, "checkFramebufferStatus", webgl::CheckFramebufferStatus);
 
   Nan::SetMethod(target, "frontFace", webgl::FrontFace);
+
+/*** START OF NEW WRAPPERS ADDED BY LIAM ***/
+  Nan::SetMethod(target, "getShaderPrecisionFormat", webgl::GetShaderPrecisionFormat);
+  Nan::SetMethod(target, "texStorage2D", webgl::TexStorage2D);
+  Nan::SetMethod(target, "getBufferSubData", webgl::GetBufferSubData);
+  Nan::SetMethod(target, "deleteTransformFeedback", webgl::DeleteTransformFeedback);
+  Nan::SetMethod(target, "createSampler", webgl::CreateSampler);
+  Nan::SetMethod(target, "samplerParameteri", webgl::SamplerParameteri);
+  Nan::SetMethod(target, "blitFramebuffer", webgl::BlitFramebuffer);
+  Nan::SetMethod(target, "bindSampler", webgl::BindSampler);
+  Nan::SetMethod(target, "transformFeedbackVaryings", webgl::TransformFeedbackVaryings);
+  Nan::SetMethod(target, "createTransformFeedback", webgl::CreateTransformFeedback);
+  Nan::SetMethod(target, "bindTransformFeedback", webgl::BindTransformFeedback);
+  Nan::SetMethod(target, "bindBufferRange", webgl::BindBufferRange);
+  Nan::SetMethod(target, "bindBufferBase", webgl::BindBufferBase);
+  Nan::SetMethod(target, "beginTransformFeedback", webgl::BeginTransformFeedback);
+  Nan::SetMethod(target, "endTransformFeedback", webgl::EndTransformFeedback);
+  Nan::SetMethod(target, "vertexAttribDivisor", webgl::VertexAttribDivisor);
+  Nan::SetMethod(target, "drawArraysInstanced", webgl::DrawArraysInstanced);
+  Nan::SetMethod(target, "fenceSync", webgl::FenceSync);
+  Nan::SetMethod(target, "getSyncParameter", webgl::GetSyncParameter);
+  Nan::SetMethod(target, "getTransformFeedbackVarying", webgl::GetTransformFeedbackVarying);
+  Nan::SetMethod(target, "deleteSync", webgl::DeleteSync);
+  Nan::SetMethod(target, "deleteSampler", webgl::DeleteSampler);
+/*** END OF NEW WRAPPERS ADDED BY LIAM ***/
 
   // OpenGL ES 2.1 constants
 

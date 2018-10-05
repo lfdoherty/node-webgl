@@ -1,6 +1,7 @@
 #include <cstring>
 #include <vector>
 #include <iostream>
+#include <map>
 
 #include "webgl.h"
 #include "image.h"
@@ -29,10 +30,15 @@ enum GLObjectType {
   GLOBJECT_TYPE_RENDERBUFFER,
   GLOBJECT_TYPE_SHADER,
   GLOBJECT_TYPE_TEXTURE,
+  GLOBJECT_TYPE_SAMPLER,
+  GLOBJECT_TYPE_TRANSFORM_FEEDBACK,
 };
 
 void registerGLObj(GLObjectType type, GLuint obj);
 void unregisterGLObj(GLuint obj);
+int registerSync(GLsync);
+void unregisterSync(int syncId);
+GLsync getSync(int syncId);
 
 // A 32-bit and 64-bit compatible way of converting a pointer to a GLuint.
 static GLuint ToGLuint(const void* ptr) {
@@ -46,7 +52,7 @@ inline Type* getArrayData(Local<Value> arg, int* num = NULL) {
 
   if(!arg->IsNull()) {
     if(arg->IsArray()) {
-      Nan::ThrowError("Not support array type");
+      Nan::ThrowError("Not supported: array type (use typed array)");
       /*
       Local<Array> arr = Local<Array>::Cast(arg);
       if(num) *num=arr->Length();
@@ -64,7 +70,7 @@ inline Type* getArrayData(Local<Value> arg, int* num = NULL) {
   return data;
 }
 
-inline void *getImageData(Local<Value> arg) {
+inline void* getImageData(Local<Value> arg, int& byteSize) {
   void *pixels = NULL;
   if (!arg->IsNull()) {
     Local<Object> obj = Local<Object>::Cast(arg);
@@ -74,8 +80,11 @@ inline void *getImageData(Local<Value> arg) {
         int num;
         
         pixels = getArrayData<BYTE>(obj, &num);
+        Local<ArrayBufferView> arr = Local<ArrayBufferView>::Cast(obj);
+        byteSize = arr->ByteLength();
     }else{
         pixels = node::Buffer::Data(Nan::Get(obj, JS_STR("data")).ToLocalChecked());
+        Nan::ThrowError("TODO: populate byteSize param");
     }
   }
   return pixels;
@@ -641,7 +650,8 @@ NAN_METHOD(TexImage2D) {
   int border = info[5]->Int32Value();
   int format = info[6]->Int32Value();
   int type = info[7]->Int32Value();
-  void *pixels=getImageData(info[8]);
+  int dataSize;
+  void *pixels=getImageData(info[8], dataSize);
 
   glTexImage2D(target, level, internalformat, width, height, border, format, type, pixels);
 
@@ -1408,7 +1418,8 @@ NAN_METHOD(TexSubImage2D) {
   GLsizei height = info[5]->Int32Value();
   GLenum format = info[6]->Int32Value();
   GLenum type = info[7]->Int32Value();
-  void *pixels=getImageData(info[8]);
+  int dataSize;
+  void *pixels=getImageData(info[8], dataSize);
 
   glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pixels);
 
@@ -1424,7 +1435,21 @@ NAN_METHOD(ReadPixels) {
   GLsizei height = info[3]->Int32Value();
   GLenum format = info[4]->Int32Value();
   GLenum type = info[5]->Int32Value();
-  void *pixels=getImageData(info[6]);
+
+  //MODIFIED BY LIAM TO SUPPORT WEBGL2 function signature
+  if (!info[6]->IsNull()) {
+    Local<Object> obj = Local<Object>::Cast(info[6]);
+    if (!obj->IsObject()){
+      GLint offset = info[6]->Int32Value();
+      glReadPixels(x, y, width, height, format, type, (void*)offset);
+
+      info.GetReturnValue().Set(Nan::Undefined());
+      return;
+    }
+  }
+
+  int dataSize;
+  void *pixels=getImageData(info[6], dataSize);
 
   glReadPixels(x, y, width, height, format, type, pixels);
 
@@ -1619,13 +1644,20 @@ NAN_METHOD(GetParameter) {
     info.GetReturnValue().Set(arr);
     break;
   }
-  case GL_ARRAY_BUFFER_BINDING:
   case GL_CURRENT_PROGRAM:
+  case GL_ARRAY_BUFFER_BINDING:
   case GL_ELEMENT_ARRAY_BUFFER_BINDING:
+ // case GL_DRAW_FRAMEBUFFER_BINDING:
+  case GL_READ_FRAMEBUFFER_BINDING:
   case GL_FRAMEBUFFER_BINDING:
   case GL_RENDERBUFFER_BINDING:
   case GL_TEXTURE_BINDING_2D:
   case GL_TEXTURE_BINDING_CUBE_MAP:
+  case GL_COPY_READ_BUFFER_BINDING:
+  case GL_COPY_WRITE_BUFFER_BINDING:
+  case GL_PIXEL_PACK_BUFFER_BINDING:
+  case GL_PIXEL_UNPACK_BUFFER_BINDING:
+  case GL_TRANSFORM_FEEDBACK_BUFFER_BINDING:
   {
     GLint params;
     ::glGetIntegerv(name, &params);
@@ -1780,6 +1812,307 @@ NAN_METHOD(CheckFramebufferStatus) {
   info.GetReturnValue().Set(JS_INT((int)glCheckFramebufferStatus(target)));
 }
 
+
+/*** START OF NEW WRAPPERS ADDED BY LIAM ***/
+
+NAN_METHOD(GetShaderPrecisionFormat) {
+  Nan::HandleScope scope;
+
+  GLenum shaderType = info[0]->Int32Value();
+  GLenum precisionType = info[1]->Int32Value();
+
+ // info.GetReturnValue().Set(JS_INT((int)glCheckFramebufferStatus(shaderType, precisionType)));
+
+  //int program = info[0]->Int32Value();
+  //v8::String::Utf8Value name(info[1]);
+  
+ // GLint range;
+
+  GLint range[2];
+
+
+  GLint precision;
+
+  glGetShaderPrecisionFormat(shaderType, precisionType, range, &precision);
+
+  Local<Array> precisionFormat = Nan::New<Array>(3);
+  precisionFormat->Set(JS_STR("rangeMin"), JS_INT(range[0]));
+  precisionFormat->Set(JS_STR("rangeMax"), JS_INT(range[1]));
+  precisionFormat->Set(JS_STR("precision"), JS_INT(precision));
+
+  info.GetReturnValue().Set(precisionFormat);
+}
+
+NAN_METHOD(TexStorage2D) {
+  Nan::HandleScope scope;
+
+  GLenum target = info[0]->Int32Value();
+  GLsizei levels = info[1]->Int32Value();
+  GLenum internalformat = info[2]->Int32Value();
+  GLsizei width = info[3]->Int32Value();
+  GLsizei height = info[4]->Int32Value();
+
+  glTexStorage2D(target, levels, internalformat, width, height);
+
+  info.GetReturnValue().Set(Nan::Undefined());
+}
+
+//void gl.getBufferSubData(target, srcByteOffset, ArrayBufferView dstData, optional dstOffset, optional length);
+NAN_METHOD(GetBufferSubData) {
+  Nan::HandleScope scope;
+
+  GLenum target = info[0]->Int32Value();
+  GLint srcByteOffset = info[1]->Int32Value();
+  
+  GLsizei dataSizeBytes = -1;
+  void* data = getImageData(info[2], dataSizeBytes);
+  
+  GLsizei dstOffset = info[3]->Int32Value();
+  GLsizei length = info[4]->Int32Value();
+
+  
+  GLsizei remainingBytes = dataSizeBytes - dstOffset;
+  if(length != 0){
+    remainingBytes = length;
+  }
+  if(dstOffset != 0){
+    data = (void*)(((char*)data)+dstOffset);
+  }
+  glGetBufferSubData(target, srcByteOffset, remainingBytes, data);
+}
+NAN_METHOD(DeleteTransformFeedback) {
+  Nan::HandleScope scope;
+
+  GLuint tf = info[0]->Uint32Value();
+
+  glDeleteTransformFeedbacks(1,&tf);
+  info.GetReturnValue().Set(Nan::Undefined());
+}
+
+NAN_METHOD(CreateSampler) {
+  Nan::HandleScope scope;
+
+  GLuint sampler;
+  glGenSamplers(1, &sampler);
+  #ifdef LOGGING
+  cout<<"createSampler "<<sampler<<endl;
+  #endif
+  registerGLObj(GLOBJECT_TYPE_SAMPLER, sampler);
+  info.GetReturnValue().Set(Nan::New<Number>(sampler));
+}
+NAN_METHOD(DeleteSampler) {
+  Nan::HandleScope scope;
+
+  GLuint sampler = info[0]->Int32Value();
+  
+  glDeleteSamplers(1,&sampler);
+
+  info.GetReturnValue().Set(Nan::Undefined());
+}
+NAN_METHOD(SamplerParameteri) {
+  Nan::HandleScope scope;
+
+  int target = info[0]->Int32Value();
+  int pname = info[1]->Int32Value();
+  int param = info[2]->Int32Value();
+
+  //cout<<"SamplerParameteri"<<target<<","<<pname<<","<<param<<endl;
+  glSamplerParameteri(target, pname, param);
+
+  info.GetReturnValue().Set(Nan::Undefined());
+}
+
+NAN_METHOD(BlitFramebuffer) {
+  Nan::HandleScope scope;
+
+  int srcX0 = info[0]->Int32Value();
+  int srcY0 = info[1]->Int32Value();
+  int srcX1 = info[2]->Int32Value();
+  int srcY1 = info[3]->Int32Value();
+  int dstX0 = info[4]->Int32Value();
+  int dstY0 = info[5]->Int32Value();
+  int dstX1 = info[6]->Int32Value();
+  int dstY1 = info[7]->Int32Value();
+  int mask = info[8]->Int32Value();
+  int filter = info[9]->Int32Value();
+
+
+  glBlitFramebuffer(srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, mask, filter);
+
+  info.GetReturnValue().Set(Nan::Undefined());
+}
+
+NAN_METHOD(BindSampler) {
+  Nan::HandleScope scope;
+
+  int unit = info[0]->Int32Value();
+  int sampler = info[1]->Int32Value();
+
+  glBindSampler(unit, sampler);
+
+  info.GetReturnValue().Set(Nan::Undefined());
+}
+
+NAN_METHOD(TransformFeedbackVaryings) {
+  Nan::HandleScope scope;
+
+  int program = info[0]->Int32Value();
+  Local<Array> names = Local<Array>::Cast(info[1]);
+  char* namesArray[names->Length()];
+  for(int i=0;i<names->Length();++i){
+    Nan::Utf8String temp(Local<Value>::Cast(names->Get(i)));
+    namesArray[i] = *temp;
+  }
+  for(int i=0;i<names->Length();++i){
+    cout << "TransformFeedbackVaryings name: "<<namesArray[i]<<endl;
+  }
+
+  int bufferMode = info[2]->Int32Value();
+  cout<<"TransformFeedbackVaryings "<<program<<" "<<bufferMode<<endl;
+
+  glTransformFeedbackVaryings(program, names->Length(), namesArray, bufferMode);
+
+  info.GetReturnValue().Set(Nan::Undefined());
+}
+NAN_METHOD(GetTransformFeedbackVarying) {
+  Nan::HandleScope scope;
+
+  int program = info[0]->Int32Value();
+  int index = info[1]->Int32Value();
+
+  int bufSize = 1024;
+  char name[bufSize];
+  GLsizei length=0;
+  GLenum type;
+  GLsizei size;
+  
+  glGetTransformFeedbackVarying(program, index, bufSize, &length, &size, &type, name);
+  //info.GetReturnValue().Set(Nan::New<Number>(tf));
+  info.GetReturnValue().Set(JS_STR(name, length)); 
+}
+NAN_METHOD(CreateTransformFeedback) {
+  Nan::HandleScope scope;
+
+  GLuint tf;
+  glGenTransformFeedbacks(1, &tf);
+  #ifdef LOGGING
+  cout<<"createTransformFeedback "<<tf<<endl;
+  #endif
+  registerGLObj(GLOBJECT_TYPE_TRANSFORM_FEEDBACK, tf);
+  info.GetReturnValue().Set(Nan::New<Number>(tf));
+}
+NAN_METHOD(BindTransformFeedback) {
+  Nan::HandleScope scope;
+
+  int target = info[0]->Int32Value();
+  int tf = info[1]->Int32Value();
+
+  glBindTransformFeedback(target, tf);
+
+  info.GetReturnValue().Set(Nan::Undefined());
+}
+NAN_METHOD(BindBufferBase) {
+  Nan::HandleScope scope;
+  int target = info[0]->Int32Value();
+  int index = info[1]->Int32Value();
+  int buffer = info[2]->Int32Value();
+
+  glBindBufferBase(target, index, buffer);
+
+  info.GetReturnValue().Set(Nan::Undefined());
+}
+NAN_METHOD(BindBufferRange) {
+  Nan::HandleScope scope;
+
+  int target = info[0]->Int32Value();
+  int index = info[1]->Int32Value();
+  int buffer = info[2]->Int32Value();
+  int offset = info[3]->Int32Value();
+  int size = info[4]->Int32Value();
+
+  glBindBufferRange(target, index, buffer, offset, size);
+
+  info.GetReturnValue().Set(Nan::Undefined());  
+}
+NAN_METHOD(BeginTransformFeedback) {
+  Nan::HandleScope scope;
+
+  GLenum primitiveMode = info[0]->Int32Value();
+
+  glBeginTransformFeedback(primitiveMode);
+
+  info.GetReturnValue().Set(Nan::Undefined());   
+}
+NAN_METHOD(EndTransformFeedback) {
+  Nan::HandleScope scope;
+
+  glEndTransformFeedback();
+
+  info.GetReturnValue().Set(Nan::Undefined());   
+}
+NAN_METHOD(VertexAttribDivisor) {
+  Nan::HandleScope scope;
+
+  int index = info[0]->Int32Value();
+  int divisor = info[1]->Int32Value();
+  
+  glVertexAttribDivisor(index, divisor);
+
+  info.GetReturnValue().Set(Nan::Undefined());  
+}
+NAN_METHOD(DrawArraysInstanced) {
+  Nan::HandleScope scope;
+
+  int mode = info[0]->Int32Value();
+  int first = info[1]->Int32Value();
+  int count = info[2]->Int32Value();
+  int instanceCount = info[3]->Int32Value();
+  
+  glDrawArraysInstanced(mode, first, count, instanceCount);
+
+  info.GetReturnValue().Set(Nan::Undefined());  
+
+}
+NAN_METHOD(FenceSync) {
+   Nan::HandleScope scope;
+
+  int condition = info[0]->Int32Value();
+  int flags = info[1]->Int32Value();
+  
+  GLsync sync = glFenceSync(condition, flags);
+  int syncId = registerSync(sync);
+
+  info.GetReturnValue().Set(Nan::New<Number>(syncId));
+}
+NAN_METHOD(DeleteSync) {
+   Nan::HandleScope scope;
+
+  int syncId = info[0]->Int32Value();
+  
+  GLsync sync = getSync(syncId);
+  glDeleteSync(sync);
+  unregisterSync(syncId);
+
+  info.GetReturnValue().Set(Nan::Undefined());
+}
+NAN_METHOD(GetSyncParameter) {
+  Nan::HandleScope scope;
+
+  int syncId = info[0]->Int32Value();
+  int pname = info[1]->Int32Value();
+
+  GLsizei bufSize = 1;
+  GLint data[bufSize];
+  GLsizei length=0;
+
+  GLsync sync = getSync(syncId);
+  
+  glGetSynciv(sync, pname, bufSize, &length, data);
+
+  info.GetReturnValue().Set(Nan::New<Number>(data[0]));
+}
+/*** END OF NEW WRAPPERS ADDED BY LIAM ***/
+
 struct GLObj {
   GLObjectType type;
   GLuint obj;
@@ -1788,6 +2121,23 @@ struct GLObj {
     this->obj=obj;
   }
 };
+
+
+map<int, GLsync> syncs;
+int syncIdCounter = 0;
+
+int registerSync(GLsync sync) {
+  int syncId = syncIdCounter;
+  ++syncIdCounter;
+  syncs[syncId] = sync;
+  return syncId;
+}
+void unregisterSync(int syncId) {
+  syncs.erase(syncId);
+}
+GLsync getSync(int syncId){
+  return syncs[syncId];
+}
 
 vector<GLObj*> globjs;
 static bool atExit=false;

@@ -155,6 +155,31 @@ NAN_METHOD(GetExtension);
 NAN_METHOD(CheckFramebufferStatus);
 
 NAN_METHOD(FrontFace);
+
+/*** START OF NEW WRAPPERS ADDED BY LIAM ***/
+NAN_METHOD(GetShaderPrecisionFormat);
+NAN_METHOD(TexStorage2D);
+NAN_METHOD(GetBufferSubData);
+NAN_METHOD(DeleteTransformFeedback);
+NAN_METHOD(CreateSampler);
+NAN_METHOD(SamplerParameteri);
+NAN_METHOD(BlitFramebuffer);
+NAN_METHOD(BindSampler);
+NAN_METHOD(TransformFeedbackVaryings);
+NAN_METHOD(CreateTransformFeedback);
+NAN_METHOD(BindTransformFeedback);
+NAN_METHOD(BindBufferBase);
+NAN_METHOD(BindBufferRange);
+NAN_METHOD(BeginTransformFeedback);
+NAN_METHOD(EndTransformFeedback);
+NAN_METHOD(VertexAttribDivisor);
+NAN_METHOD(DrawArraysInstanced);
+NAN_METHOD(FenceSync);
+NAN_METHOD(GetSyncParameter);
+NAN_METHOD(GetTransformFeedbackVarying);
+NAN_METHOD(DeleteSync);
+NAN_METHOD(DeleteSampler);
+/*** END OF NEW WRAPPERS ADDED BY LIAM ***/
 }
 
 #endif /* WEBGL_H_ */
