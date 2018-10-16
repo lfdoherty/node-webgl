@@ -194,6 +194,10 @@ void init(Handle<Object> target)
   Nan::SetMethod(target, "getTransformFeedbackVarying", webgl::GetTransformFeedbackVarying);
   Nan::SetMethod(target, "deleteSync", webgl::DeleteSync);
   Nan::SetMethod(target, "deleteSampler", webgl::DeleteSampler);
+  Nan::SetMethod(target, "drawBuffers", webgl::DrawBuffers);
+  Nan::SetMethod(target, "texStorage3D", webgl::TexStorage3D);
+  Nan::SetMethod(target, "framebufferTextureLayer", webgl::FramebufferTextureLayer);
+  Nan::SetMethod(target, "copyBufferSubData", webgl::CopyBufferSubData);
 /*** END OF NEW WRAPPERS ADDED BY LIAM ***/
 
   // OpenGL ES 2.1 constants

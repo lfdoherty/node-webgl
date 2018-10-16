@@ -100,6 +100,8 @@ NAN_METHOD(Init) {
     info.GetReturnValue().Set(JS_INT(-1));
   }else{
     //fprintf(stdout, "Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
+
+    glEnable(GL_PROGRAM_POINT_SIZE);
     info.GetReturnValue().Set(JS_INT(0));  
   } 
   
@@ -1953,24 +1955,40 @@ NAN_METHOD(BindSampler) {
   info.GetReturnValue().Set(Nan::Undefined());
 }
 
+/*
+  String::Utf8Value code(info[1]);
+
+  const char* codes[1];
+  codes[0] = *code;
+const GLchar* shaderSrc[] 
+*/
 NAN_METHOD(TransformFeedbackVaryings) {
   Nan::HandleScope scope;
 
   int program = info[0]->Int32Value();
   Local<Array> names = Local<Array>::Cast(info[1]);
-  char* namesArray[names->Length()];
+  char namesArray[names->Length()][1024];
+  const GLchar* namePointers[names->Length()];
+  //std::vector<String::Utf8Value> temps;
+  //Nan::Utf8String* temps[names->Length()];//(Local<Value>::Cast(names->Get(i)));
   for(int i=0;i<names->Length();++i){
-    Nan::Utf8String temp(Local<Value>::Cast(names->Get(i)));
-    namesArray[i] = *temp;
+    v8::String::Utf8Value temp(Local<Value>::Cast(names->Get(i)));
+    strcpy(namesArray[i], *temp);
+    namePointers[i] = namesArray[i];
+    //temps.push_back(v8::String::Utf8Value(Local<Value>::Cast(names->Get(i))));
   }
-  for(int i=0;i<names->Length();++i){
-    cout << "TransformFeedbackVaryings name: "<<namesArray[i]<<endl;
-  }
+ 
+ /* for(int i=0;i<names->Length();++i){
+    cout << "TransformFeedbackVaryings name: "<<namesArray[i]<<" "<<strlen(namesArray[i])<<endl;
+  }*/
 
   int bufferMode = info[2]->Int32Value();
-  cout<<"TransformFeedbackVaryings "<<program<<" "<<bufferMode<<endl;
+  //cout<<"TransformFeedbackVaryings "<<program<<" "<<bufferMode<<endl;
 
-  glTransformFeedbackVaryings(program, names->Length(), namesArray, bufferMode);
+  glTransformFeedbackVaryings(program, names->Length(), namePointers, bufferMode);
+
+  //delete[] temps;
+ // cout<<"HERE";
 
   info.GetReturnValue().Set(Nan::Undefined());
 }
@@ -2110,6 +2128,62 @@ NAN_METHOD(GetSyncParameter) {
   glGetSynciv(sync, pname, bufSize, &length, data);
 
   info.GetReturnValue().Set(Nan::New<Number>(data[0]));
+}
+NAN_METHOD(DrawBuffers) {
+  Nan::HandleScope scope;
+
+  //int program = info[0]->Int32Value();
+  Local<Array> attachments = Local<Array>::Cast(info[0]);
+  GLenum bufs[attachments->Length()];
+  for(uint i=0;i<attachments->Length();++i){
+    bufs[i] = attachments->Get(i)->Int32Value();
+  }
+ 
+  glDrawBuffers(attachments->Length(), bufs);
+
+  info.GetReturnValue().Set(Nan::Undefined());
+}
+NAN_METHOD(TexStorage3D) {
+  Nan::HandleScope scope;
+
+  GLenum target = info[0]->Int32Value();
+  GLsizei levels = info[1]->Int32Value();
+  GLenum internalformat = info[2]->Int32Value();
+  GLsizei width = info[3]->Int32Value();
+  GLsizei height = info[4]->Int32Value();
+  GLsizei depth = info[5]->Int32Value();
+
+  glTexStorage3D(target, levels, internalformat, width, height, depth);
+
+  info.GetReturnValue().Set(Nan::Undefined());
+}
+
+NAN_METHOD(FramebufferTextureLayer) {
+  Nan::HandleScope scope;
+
+  GLenum target = info[0]->Int32Value();
+  GLenum attachment = info[1]->Int32Value();
+  int tex = info[2]->Int32Value();
+  int level = info[3]->Int32Value();
+  int layer = info[4]->Int32Value();
+
+  glFramebufferTextureLayer(target, attachment, tex, level, layer);
+
+  info.GetReturnValue().Set(Nan::Undefined());
+}
+NAN_METHOD(CopyBufferSubData) {
+  Nan::HandleScope scope;
+
+  //readTarget, writeTarget, readOffset, writeOffset, size
+  GLenum readTarget = info[0]->Int32Value();
+  GLenum writeTarget = info[1]->Int32Value();
+  int readOffset = info[2]->Int32Value();
+  int writeOffset = info[3]->Int32Value();
+  int size = info[4]->Int32Value();
+
+  glCopyBufferSubData(readTarget, writeTarget, readOffset, writeOffset, size);
+
+  info.GetReturnValue().Set(Nan::Undefined());  
 }
 /*** END OF NEW WRAPPERS ADDED BY LIAM ***/
 
