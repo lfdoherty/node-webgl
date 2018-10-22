@@ -2185,6 +2185,36 @@ NAN_METHOD(CopyBufferSubData) {
 
   info.GetReturnValue().Set(Nan::Undefined());  
 }
+NAN_METHOD(ClearBufferfv) {
+  Nan::HandleScope scope;
+
+  //readTarget, writeTarget, readOffset, writeOffset, size
+  GLenum buffer = info[0]->Int32Value();
+  GLint drawBuffer = info[1]->Int32Value();
+  int srcOffset = info[3]->Int32Value();
+
+  int num;
+  GLfloat* ptr = getArrayData<GLfloat>(info[2],&num);
+  if(num + srcOffset < 4){
+    Nan::ThrowError("value array is too short, must be at least 4+srcOffset");
+    return;
+  }
+
+  cout<<"srcOffset:"<<srcOffset<<endl;
+  cout<<"num:"<<num<<endl;
+  glClearBufferfv(buffer, drawBuffer, ptr);
+
+  info.GetReturnValue().Set(Nan::Undefined());  
+
+}
+NAN_METHOD(ReadBuffer) {
+  Nan::HandleScope scope;
+  GLenum src = info[0]->Int32Value();
+
+  glReadBuffer(src);
+  
+  info.GetReturnValue().Set(Nan::Undefined());    
+}
 /*** END OF NEW WRAPPERS ADDED BY LIAM ***/
 
 struct GLObj {

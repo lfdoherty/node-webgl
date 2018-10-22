@@ -183,6 +183,8 @@ NAN_METHOD(DrawBuffers);
 NAN_METHOD(TexStorage3D);
 NAN_METHOD(FramebufferTextureLayer);
 NAN_METHOD(CopyBufferSubData);
+NAN_METHOD(ClearBufferfv);
+NAN_METHOD(ReadBuffer);
 /*** END OF NEW WRAPPERS ADDED BY LIAM ***/
 }
 

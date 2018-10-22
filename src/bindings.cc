@@ -198,6 +198,8 @@ void init(Handle<Object> target)
   Nan::SetMethod(target, "texStorage3D", webgl::TexStorage3D);
   Nan::SetMethod(target, "framebufferTextureLayer", webgl::FramebufferTextureLayer);
   Nan::SetMethod(target, "copyBufferSubData", webgl::CopyBufferSubData);
+  Nan::SetMethod(target, "clearBufferfv", webgl::ClearBufferfv);
+  Nan::SetMethod(target, "readBuffer", webgl::ReadBuffer);
 /*** END OF NEW WRAPPERS ADDED BY LIAM ***/
 
   // OpenGL ES 2.1 constants
