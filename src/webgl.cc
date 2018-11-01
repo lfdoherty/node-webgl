@@ -799,11 +799,18 @@ NAN_METHOD(BufferSubData) {
   int target = info[0]->Int32Value();
   int offset = info[1]->Int32Value();
   Local<Object> obj = Local<Object>::Cast(info[2]);
+  int srcOffsetBytes = info[3]->Int32Value();
+  int lengthBytes = info[4]->Int32Value();
+ // cout<<"offset:"<<offset<<endl;
+ // cout<<"srcOffsetBytes:"<<srcOffsetBytes<<endl;
+  //cout<<"lengthBytes:"<<lengthBytes<<endl;
 
-   int element_size = 1;
-   Local<ArrayBufferView> arr = Local<ArrayBufferView>::Cast(obj);
-   int size = arr->ByteLength() * element_size;
-   void* data = (uint8_t*)arr->Buffer()->GetContents().Data() + arr->ByteOffset();
+  int element_size = 1;
+  Local<ArrayBufferView> arr = Local<ArrayBufferView>::Cast(obj);
+  int size = lengthBytes==0?(arr->ByteLength() * element_size):lengthBytes;
+  //cout<<"size:"<<size<<endl;
+  //cout<<"bytelength:"<<arr->ByteLength()<<endl;
+  void* data = (uint8_t*)arr->Buffer()->GetContents().Data() + arr->ByteOffset() + srcOffsetBytes;
 
   glBufferSubData(target, offset, size, data);
 
