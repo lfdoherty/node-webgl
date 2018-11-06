@@ -174,6 +174,7 @@ NAN_METHOD(BeginTransformFeedback);
 NAN_METHOD(EndTransformFeedback);
 NAN_METHOD(VertexAttribDivisor);
 NAN_METHOD(DrawArraysInstanced);
+//NAN_METHOD(DrawElementsInstanced);
 NAN_METHOD(FenceSync);
 NAN_METHOD(GetSyncParameter);
 NAN_METHOD(GetTransformFeedbackVarying);

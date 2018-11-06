@@ -2098,6 +2098,20 @@ NAN_METHOD(DrawArraysInstanced) {
   info.GetReturnValue().Set(Nan::Undefined());  
 
 }
+/*NAN_METHOD(DrawElementsInstanced) {
+  Nan::HandleScope scope;
+
+  int mode = info[0]->Int32Value();
+  int count = info[1]->Int32Value();
+  int type = info[2]->Int32Value();
+  int first = info[3]->Int32Value();
+  int instanceCount = info[4]->Int32Value();
+  
+  glDrawElementsInstanced(mode, count, type, first, instanceCount);
+
+  info.GetReturnValue().Set(Nan::Undefined());  
+
+}*/
 NAN_METHOD(FenceSync) {
    Nan::HandleScope scope;
 

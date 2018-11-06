@@ -189,6 +189,7 @@ void init(Handle<Object> target)
   Nan::SetMethod(target, "endTransformFeedback", webgl::EndTransformFeedback);
   Nan::SetMethod(target, "vertexAttribDivisor", webgl::VertexAttribDivisor);
   Nan::SetMethod(target, "drawArraysInstanced", webgl::DrawArraysInstanced);
+  //Nan::SetMethod(target, "drawElementsInstanced", webgl::DrawElementsInstanced);
   Nan::SetMethod(target, "fenceSync", webgl::FenceSync);
   Nan::SetMethod(target, "getSyncParameter", webgl::GetSyncParameter);
   Nan::SetMethod(target, "getTransformFeedbackVarying", webgl::GetTransformFeedbackVarying);
